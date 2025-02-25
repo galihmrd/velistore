@@ -4,6 +4,7 @@ import string
 from pyrogram import Client, filters
 from src.database.products_db import menu_db
 from src.database.credits_db import credit_db
+from src.database.sudo_db import sudo_user_db
 from src.modules.keyboard import button_builder, build_keyboard
 from src.decorators import admins_only
 from pyrogram.errors.pyromod.listener_timeout import ListenerTimeout
@@ -107,3 +108,14 @@ async def menu(client, message):
         await message.reply("\n\n".join(list_menu), disable_web_page_preview=True)
     except MessageEmpty:
         await message.reply("Menu etalase kosong!")
+
+@Client.on_message(filters.command("promote"))
+async def promote_user(client, message):
+    p = await sudo_user_db.get_all_sudo()
+    print(p)
+    if len(message.command) == 2:
+        if message.command[1].startswith("@"):
+            username = message.command[1].split("@")[1]
+            userdata = await client.get_users(username)
+            await sudo_user_db.add_sudo(userdata.id)
+            await message.reply(f"{userdata.mention} Ditambahkan sebagai admin.")
