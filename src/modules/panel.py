@@ -56,11 +56,11 @@ async def add_stock(client, message):
                 "📥 Masukkan **[KODE]** produk:\n⚠️ __Pastikan kode sama "
                 "dengan yang terdaftar di menu etalase__"
             ),
-            timeout=60
+            timeout=240
         )
         product_item = await chat.ask(
             text='📥 Masukkan **[1 STOCK]** produk:\n⚠️ __Masukkan produk satu per satu.',
-            timeout=60
+            timeout=240
         )
         add_stock_data.update(
             {
@@ -88,11 +88,11 @@ async def add_menu(client, message):
         close_btn = button_builder("❎ Tidak", f"cls")
         yes_btn = button_builder("✅ Ya", f"addmenu|{random_string}")
         button = build_keyboard([yes_btn, close_btn], row_width=2)
-        product_code = await chat.ask(text='ℹ️ Masukkan **[KODE]** produk:', timeout=60)
-        product_name = await chat.ask(text='ℹ️ Masukkan **[NAMA]** produk:', timeout=60)
-        product_price = await chat.ask(text='ℹ️ Masukkan **[HARGA]** produk:', timeout=60)
+        product_code = await chat.ask(text='ℹ️ Masukkan **[KODE]** produk:', timeout=240)
+        product_name = await chat.ask(text='ℹ️ Masukkan **[NAMA]** produk:', timeout=240)
+        product_price = await chat.ask(text='ℹ️ Masukkan **[HARGA]** produk:', timeout=240)
         int(product_price.text) + 1
-        product_desc = await chat.ask(text='ℹ️ Masukkan **[DESKRIPSI]** produk:', timeout=60)
+        product_desc = await chat.ask(text='ℹ️ Masukkan **[DESKRIPSI]** produk:', timeout=240)
         add_menu_data.update(
             {
                 random_string: {
@@ -142,6 +142,7 @@ async def menu(client, message):
     bot_info = await client.get_me()
     username = bot_info.username
     try:
+        caption = "**»»» PERLA BOT STORE «««**\n\n"
         all_menu = await menu_db.get_all_menus()
         for item in all_menu:
             stock = await stocks_db.get_stock(item['key'])
@@ -151,7 +152,7 @@ async def menu(client, message):
                 f"**🏷 {item['name']}**\n• **💵 Harga:** Rp{int(item['price']):,}\n• **📦 Stok Tersedia:** {len(list_stock)}\n"
                 f"• **🆔 Kode:** [{item['key']}]({url_product})\n• **📄 Desk:** __{item['desc']}__"
             )
-        await message.reply("\n\n".join(list_menu), disable_web_page_preview=True)
+        await message.reply(caption + "\n\n".join(list_menu), disable_web_page_preview=True)
     except MessageEmpty:
         await message.reply("Menu etalase kosong!")
 

@@ -93,12 +93,12 @@ async def cb_order_menu(b, cb):
             await stocks_db.remove_item(key_item, item)
             list_admin = await sudo_user_db.get_all_sudo()
             await cb.message.edit(
-                f"**🧾 DETAIL PESANAN 🧾**\n\n• **Layanan:** {menu['name']}\n"
+                f"**»»» DETAIL PESANAN «««**\n\n• **Layanan:** {menu['name']}\n"
                 f"• **ID Pembeli:** {user_id}\n• **Harga**: Rp{int(menu['price']):,}\n"
                 f"• **Jumlah Item:** {total_item}x\n• **Total Bayar:** Rp{price:,}\n"
                 f"• **Saldo Awal:** Rp{remaining_balance:,}\n• **Sisa Saldo:** Rp{balance:,}\n"
                 f"• **Desc:** {menu['desc']}\n• **Stampel Waktu:** {datetime.now()}\n\n"
-                f"**📑 DATA PESANAN 📑**\n\n`{item}`"
+                f"**»»» DATA PESANAN «««**\n\n`{item}`"
             )
 
 @Client.on_callback_query(filters.regex(pattern=r"topup"))
@@ -120,7 +120,7 @@ async def cb_topup_menu(b, cb):
                 random_string
             )
             msg = (
-                f"💰 **INFORMASI TOPUP** 💰\n\n• **ID Pengguna:** {userdata.mention} (`{user_id}`)\n"
+                f"💰 **INFORMASI TOPUP PerlaPAY** 💰\n\n• **ID Pengguna:** {userdata.mention} (`{user_id}`)\n"
                 f"• **Saldo Terakhir:** Rp{remaining}\n• **Nominal Topup:** Rp{nominal}\n\n"
                 f"• **Saldo Terkini:** Rp{balance}\n• **ID Pembayaran:** `{random_string}`\n"
                 f"• **Stampel Waktu:** `{datetime.now()}`"
