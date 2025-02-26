@@ -157,6 +157,7 @@ async def menu(client, message):
         await message.reply("Menu etalase kosong!")
 
 @Client.on_message(filters.command("promote"))
+@admins_only
 async def promote_user(client, message):
     if len(message.command) == 2:
         if message.command[1].startswith("@"):
