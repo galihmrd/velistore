@@ -19,8 +19,11 @@ class Database:
         else:
             stock = await self.get_stock(key)
             list_data = stock.get("stock")
-            list_data.append(data)
-            await self.update_stock(key, list_data)
+            if not data in list_data:
+                list_data.append(data)
+                await self.update_stock(key, list_data)
+            else:
+                raise Exception("Data sudah ada dalam database.")
 
     async def is_stock_exist(self, key):
         menu_item = await self.col.find_one({'key': key})

@@ -12,7 +12,7 @@ from pyrogram.errors.pyromod.listener_timeout import ListenerTimeout
 from pyrogram.errors.exceptions.bad_request_400 import MessageEmpty
 
 add_menu_data = {}
-
+add_stock_data = {}
 
 @Client.on_message(filters.command("topup"))
 @admins_only
@@ -47,6 +47,10 @@ async def add_saldo(client, message):
 async def add_stock(client, message):
     chat = message.chat
     try:
+        random_string = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(5))
+        close_btn = button_builder("❎ Tidak", f"cls")
+        yes_btn = button_builder("✅ Ya", f"restock|{random_string}")
+        button = build_keyboard([yes_btn, close_btn], row_width=2)
         product_code = await chat.ask(
             text=(
                 "📥 Masukkan **[KODE]** produk:\n⚠️ __Pastikan kode sama "
@@ -58,8 +62,18 @@ async def add_stock(client, message):
             text='📥 Masukkan **[1 STOCK]** produk:\n⚠️ __Masukkan produk satu per satu.',
             timeout=60
         )
-        await stocks_db.add_stock(product_code.text, product_item.text)
-        await message.reply("Selesai.")
+        add_stock_data.update(
+            {
+                random_string: {
+                    "code": product_code.text.lower(),
+                    "item": product_item.text,
+                }
+            }
+        )
+        await message.reply(
+            f"❓ Apakah anda yakin data tersebut benar?",
+            reply_markup=button
+        )
     except ListenerTimeout:
         await message.reply(
             "😢 Oops! Waktu untuk mengisi menu berakhir, silahkan ulangi."
@@ -82,7 +96,7 @@ async def add_menu(client, message):
         add_menu_data.update(
             {
                 random_string: {
-                    "code": product_code.text,
+                    "code": product_code.text.lower(),
                     "name": product_name.text,
                     "price": product_price.text,
                     "desc": product_desc.text
@@ -111,7 +125,8 @@ async def add_menu(client, message):
 async def delete_menu(client, message):
     try:
         product_code = " ".join(message.command[1:])
-        await menu_db.delete_menu(product_code)
+        await menu_db.delete_menu(product_code.lower())
+        await stocks_db.delete_stock(product_code.lower())
         await message.reply(
             f"✅ [{product_code}] Produk dihapus dari menu!"
         )
@@ -122,7 +137,6 @@ async def delete_menu(client, message):
 
 
 @Client.on_message(filters.command("menu"))
-@admins_only
 async def menu(client, message):
     list_menu = []
     bot_info = await client.get_me()

@@ -3,7 +3,7 @@ import string
 from datetime import datetime
 from pyrogram import Client, filters
 from src.database.products_db import menu_db
-from src.modules.panel import add_menu_data
+from src.modules.panel import add_menu_data, add_stock_data
 from src.database.credits_db import credit_db
 from src.database.sudo_db import sudo_user_db
 from src.database.stock_db import stocks_db
@@ -22,6 +22,25 @@ async def cb_add_menu(b, cb):
     await cb.message.edit(
         f"✅ Produk {data['name']} ditambahkan ke menu etalase."
     )
+
+@Client.on_callback_query(filters.regex(pattern=r"restock"))
+async def cb_add_stock(b, cb):
+    key_data = cb.data.strip().split("|")[1]
+    data = add_stock_data.get(key_data)
+    menu = await menu_db.is_menu_exist(data['code'])
+    if menu:
+        try:
+            await stocks_db.add_stock(data['code'], data['item'])
+            await cb.message.edit(
+                f"✅ 1 Stock {data['code']} ditambahkan."
+            )
+        except Exception as e:
+            await cb.answer(str(e), show_alert=True)
+    else:
+        await cb.answer(
+            "Kode produk tidak terdaftar di menu etalase.",
+            show_alert=True
+        )
 
 @Client.on_callback_query(filters.regex(pattern=r"order"))
 async def cb_order_menu(b, cb):
@@ -74,12 +93,12 @@ async def cb_order_menu(b, cb):
             await stocks_db.remove_item(key_item, item)
             list_admin = await sudo_user_db.get_all_sudo()
             await cb.message.edit(
-                f"**DETAIL PESANAN**\n\n• **Layanan:** {menu['name']}\n"
+                f"**🧾 DETAIL PESANAN 🧾**\n\n• **Layanan:** {menu['name']}\n"
                 f"• **ID Pembeli:** {user_id}\n• **Harga**: Rp{int(menu['price']):,}\n"
                 f"• **Jumlah Item:** {total_item}x\n• **Total Bayar:** Rp{price:,}\n"
                 f"• **Saldo Awal:** Rp{remaining_balance:,}\n• **Sisa Saldo:** Rp{balance:,}\n"
                 f"• **Desc:** {menu['desc']}\n• **Stampel Waktu:** {datetime.now()}\n\n"
-                f"**DATA PESANAN**\n\n`{item}`"
+                f"**📑 DATA PESANAN 📑**\n\n`{item}`"
             )
 
 @Client.on_callback_query(filters.regex(pattern=r"topup"))
@@ -111,3 +130,8 @@ async def cb_topup_menu(b, cb):
             await cb.message.edit(e)
     else:
         await cb.answer("Hanya admin yang dapat melakukan tindakan ini.", show_alert=True)
+
+@Client.on_callback_query(filters.regex(pattern=r"cls"))
+async def close_btn(b, cb):
+    await cb.message.delete()
+    await cb.answer("Tugas dibatalkan.")

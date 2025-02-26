@@ -8,7 +8,7 @@ dns.resolver.default_resolver.nameservers=['8.8.8.8']
 class Database:
     def __init__(self, uri):
         self._client = AsyncIOMotorClient(uri)
-        self.db = self._client["tikmedia"]
+        self.db = self._client["products"]
         self.col = self.db.menu  # Mengganti koleksi menjadi 'menu'
 
     async def add_menu(self, key, name, price, desc):
