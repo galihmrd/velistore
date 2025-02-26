@@ -5,6 +5,8 @@ from pyrogram import Client, filters
 from src.database.products_db import menu_db
 from src.modules.panel import add_menu_data
 from src.database.credits_db import credit_db
+from src.database.sudo_db import sudo_user_db
+from src.database.stock_db import stocks_db
 from src.modules.keyboard import button_builder, build_keyboard
 
 @Client.on_callback_query(filters.regex(pattern=r"addmenu"))
@@ -31,6 +33,8 @@ async def cb_order_menu(b, cb):
             current_item = int(cb.data.strip().split("|")[2]) + 1
         else:
             current_item = int(cb.data.strip().split("|")[2]) - 1
+            if current_item == 0:
+                return await cb.answer("Checkout setidaknya 1 item.", show_alert=True)
         key_item = cb.data.strip().split("|")[3]
         menu = await menu_db.get_menu(key_item)
         price = int(menu["price"]) * current_item
@@ -51,6 +55,12 @@ async def cb_order_menu(b, cb):
         get_balance = await credit_db.get_balance(user_id)
         remaining = get_balance.get("credits")
         remaining_balance = 0 if remaining is None else remaining
+        stock = await stocks_db.get_stock(key_item)
+        remain_stock = len(stock.get("stock", []))
+        if total_item > remain_stock:
+            if remain_stock == 0:
+                return await cb.answer(f"Stock item habis.", show_alert=True)
+            return await cb.answer(f"Stock tidak mencukupi.", show_alert=True)
         if price > remaining_balance:
             return await cb.answer(f"Saldo anda tidak mencukupi.", show_alert=True)
         elif price <= remaining_balance:
@@ -60,7 +70,17 @@ async def cb_order_menu(b, cb):
                 balance,
                 random_string
             )
-            await cb.message.edit("Order berhasil.")
+            item = stock.get("stock")[0]
+            await stocks_db.remove_item(key_item, item)
+            list_admin = await sudo_user_db.get_all_sudo()
+            await cb.message.edit(
+                f"**DETAIL PESANAN**\n\n• **Layanan:** {menu['name']}\n"
+                f"• **ID Pembeli:** {user_id}\n• **Harga**: Rp{int(menu['price']):,}\n"
+                f"• **Jumlah Item:** {total_item}x\n• **Total Bayar:** Rp{price:,}\n"
+                f"• **Saldo Awal:** Rp{remaining_balance:,}\n• **Sisa Saldo:** Rp{balance:,}\n"
+                f"• **Desc:** {menu['desc']}\n• **Stampel Waktu:** {datetime.now()}\n\n"
+                f"**DATA PESANAN**\n\n`{item}`"
+            )
 
 @Client.on_callback_query(filters.regex(pattern=r"topup"))
 async def cb_topup_menu(b, cb):
@@ -82,8 +102,8 @@ async def cb_topup_menu(b, cb):
             )
             msg = (
                 f"💰 **INFORMASI TOPUP** 💰\n\n• **ID Pengguna:** {userdata.mention} (`{user_id}`)\n"
-                f"• **Saldo Terakhir:** Rp{remaining:,}\n• **Nominal Topup:** Rp{nominal:,}\n\n"
-                f"• **Saldo Terkini:** Rp{balance:,}\n• **ID Pembayaran:** `{random_string}`\n"
+                f"• **Saldo Terakhir:** Rp{remaining}\n• **Nominal Topup:** Rp{nominal}\n\n"
+                f"• **Saldo Terkini:** Rp{balance}\n• **ID Pembayaran:** `{random_string}`\n"
                 f"• **Stampel Waktu:** `{datetime.now()}`"
             )
             await cb.message.edit(msg)

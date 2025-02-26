@@ -5,6 +5,7 @@ from pyrogram import Client, filters
 from src.database.products_db import menu_db
 from src.database.credits_db import credit_db
 from src.database.sudo_db import sudo_user_db
+from src.database.stock_db import stocks_db
 from src.modules.keyboard import button_builder, build_keyboard
 from src.decorators import admins_only
 from pyrogram.errors.pyromod.listener_timeout import ListenerTimeout
@@ -34,12 +35,35 @@ async def add_saldo(client, message):
                 balance = nominal + remaining_balance
                 msg = (
                     f"💰 **INFORMASI TOPUP** 💰\n\n• **ID Pengguna:** {mention} (`{user_id}`)\n"
-                    f"• **Saldo Terakhir:** Rp{remaining:,}\n• **Nominal Topup:** Rp{nominal:,}\n\n"
+                    f"• **Saldo Terakhir:** Rp{remaining}\n• **Nominal Topup:** Rp{nominal}\n\n"
                     "❓ **Apakah informasi tersebut benar?**"
                 )
                 await message.reply(msg, reply_markup=button)
             except ValueError:
                 print("error")
+
+@Client.on_message(filters.command("addstock"))
+@admins_only
+async def add_stock(client, message):
+    chat = message.chat
+    try:
+        product_code = await chat.ask(
+            text=(
+                "📥 Masukkan **[KODE]** produk:\n⚠️ __Pastikan kode sama "
+                "dengan yang terdaftar di menu etalase__"
+            ),
+            timeout=60
+        )
+        product_item = await chat.ask(
+            text='📥 Masukkan **[1 STOCK]** produk:\n⚠️ __Masukkan produk satu per satu.',
+            timeout=60
+        )
+        await stocks_db.add_stock(product_code.text, product_item.text)
+        await message.reply("Selesai.")
+    except ListenerTimeout:
+        await message.reply(
+            "😢 Oops! Waktu untuk mengisi menu berakhir, silahkan ulangi."
+        )
 
 @Client.on_message(filters.command("add"))
 @admins_only
@@ -53,6 +77,7 @@ async def add_menu(client, message):
         product_code = await chat.ask(text='ℹ️ Masukkan **[KODE]** produk:', timeout=60)
         product_name = await chat.ask(text='ℹ️ Masukkan **[NAMA]** produk:', timeout=60)
         product_price = await chat.ask(text='ℹ️ Masukkan **[HARGA]** produk:', timeout=60)
+        int(product_price.text) + 1
         product_desc = await chat.ask(text='ℹ️ Masukkan **[DESKRIPSI]** produk:', timeout=60)
         add_menu_data.update(
             {
@@ -67,6 +92,10 @@ async def add_menu(client, message):
         await message.reply(
             f"❓ Anda yakin ingin menambahkan produk **{product_name.text}** ke menu?",
             reply_markup=button
+        )
+    except ValueError:
+        await message.reply(
+            "Error: Harga harus berupa angka, contoh: 5000",
         )
     except IndexError:
         await message.reply(
@@ -93,6 +122,7 @@ async def delete_menu(client, message):
 
 
 @Client.on_message(filters.command("menu"))
+@admins_only
 async def menu(client, message):
     list_menu = []
     bot_info = await client.get_me()
@@ -100,9 +130,11 @@ async def menu(client, message):
     try:
         all_menu = await menu_db.get_all_menus()
         for item in all_menu:
+            stock = await stocks_db.get_stock(item['key'])
+            list_stock = stock.get("stock", [])
             url_product = f"http://t.me/{username}?start={item['key']}"
             list_menu.append(
-                f"**🏷 {item['name']}**\n• **💵 Harga:** Rp{int(item['price']):,}\n"
+                f"**🏷 {item['name']}**\n• **💵 Harga:** Rp{int(item['price']):,}\n• **📦 Stok Tersedia:** {len(list_stock)}\n"
                 f"• **🆔 Kode:** [{item['key']}]({url_product})\n• **📄 Desk:** __{item['desc']}__"
             )
         await message.reply("\n\n".join(list_menu), disable_web_page_preview=True)
@@ -111,8 +143,6 @@ async def menu(client, message):
 
 @Client.on_message(filters.command("promote"))
 async def promote_user(client, message):
-    p = await sudo_user_db.get_all_sudo()
-    print(p)
     if len(message.command) == 2:
         if message.command[1].startswith("@"):
             username = message.command[1].split("@")[1]

@@ -19,6 +19,8 @@ class Database:
 
     async def get_balance(self, uid):
         balance_item = await self.col.find_one({'uid': uid})
+        if balance_item is None:
+            return {}
         return balance_item
 
     async def get_all_balance(self):
