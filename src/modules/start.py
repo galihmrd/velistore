@@ -16,8 +16,8 @@ async def start(client, message):
         checkout_btn = button_builder(f"Checkout Rp{int(item['price']):,}", f"order|checkout|1|{item['key']}")
         button = build_keyboard([min_btn, total_item, plus_btn, checkout_btn], row_width=3)
         msg = (
-            f"**»»» CHECKOUT MENU «««**\n\n**🏷 {item['name']}**\n• **💵 Harga:** {item['price']}\n• **📦 Stok Tersedia:** {stock_avail}\n"
-            f"• **🆔 Kode:** {item['key']}\n• **📄 Desk:** __{item['desc']}__"
+            f"**»»» CHECKOUT MENU «««**\n\n**🏷 {item['name']}**\n• **💵 Harga:** Rp{int(item['price']):,}\n• **📦 Stok Tersedia:** {stock_avail}\n"
+            f"• **🆔 Kode:** `{item['key']}`\n• **📄 Desk:** __{item['desc']}__"
             "\n\n**Jumlah item:**"
         )
         await message.reply(msg, reply_markup=button)

@@ -3,6 +3,7 @@ import string
 import traceback
 from datetime import datetime
 from pyrogram import Client, filters
+from pyrogram.errors.exceptions.flood_420 import FloodWait
 from src.database.products_db import menu_db
 from src.modules.panel import add_menu_data, add_stock_data
 from src.database.credits_db import credit_db
@@ -30,7 +31,6 @@ async def cb_show_menu(b, cb):
     position = cb.data.strip().split("|")[2]
     task_id = cb.data.strip().split("|")[3]
     if cb.from_user.id == int(task_id):
-        await cb.answer("⏳ Memuat...")
         list_menu = []
         bot_info = await b.get_me()
         username = bot_info.username
@@ -44,7 +44,7 @@ async def cb_show_menu(b, cb):
                 url_product = f"http://t.me/{username}?start={item['key']}"
                 list_menu.append(
                     f"**🏷 {item['name']}**\n• **💵 Harga:** Rp{int(item['price']):,}\n• **📦 Stok Tersedia:** {len(list_stock)}\n"
-                    f"• **🆔 Kode:** [{item['key']}]({url_product})\n• **📄 Desk:** __{item['desc']}__"
+                    f"• **🆔 Kode:** `{item['key']}` | [Beli]({url_product})\n• **📄 Desk:** __{item['desc']}__"
                 )
                 current_position = int(position) + 4
                 if current_position == i:
@@ -59,7 +59,10 @@ async def cb_show_menu(b, cb):
                 await cb.answer("Anda telah mencapai batas akhir menu etalase.", show_alert=True)
             elif action == "back":
                 await cb.answer("Anda telah mencapai batas awal menu etalase.", show_alert=True)
-
+        except FloodWait as e:
+            await cb.answer(f"Terlalu cepat! Tunggu {e.value} detik.")
+    else:
+        await cb.answer("Ketik /menu untuk melihat menu anda sendiri.", show_alert=True)
 
 @Client.on_callback_query(filters.regex(pattern=r"restock"))
 async def cb_add_stock(b, cb):
@@ -116,7 +119,7 @@ async def cb_order_menu(b, cb):
         remain_stock = len(stock.get("stock", []))
         if total_item > remain_stock:
             if remain_stock == 0:
-                return await cb.answer(f"Stock item habis.", show_alert=True)
+                return await cb.answer(f"Stock item kosong.", show_alert=True)
             return await cb.answer(f"Stock tidak mencukupi.", show_alert=True)
         if price > remaining_balance:
             return await cb.answer(f"Saldo anda tidak mencukupi.", show_alert=True)

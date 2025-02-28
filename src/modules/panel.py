@@ -155,10 +155,9 @@ async def menu(client, message):
             url_product = f"http://t.me/{username}?start={item['key']}"
             list_menu.append(
                 f"**🏷 {item['name']}**\n• **💵 Harga:** Rp{int(item['price']):,}\n• **📦 Stok Tersedia:** {len(list_stock)}\n"
-                f"• **🆔 Kode:** [{item['key']}]({url_product})\n• **📄 Desk:** __{item['desc']}__"
+                f"• **🆔 Kode:** `{item['key']}` | [Beli]({url_product})\n• **📄 Desk:** __{item['desc']}__"
             )
             if i == 5:
-                print(i)
                 break
         await message.reply(caption + "\n\n".join(list_menu), reply_markup=button, disable_web_page_preview=True)
     except MessageEmpty:
