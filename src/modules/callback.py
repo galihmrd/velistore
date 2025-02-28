@@ -1,9 +1,11 @@
 import random
 import string
 import traceback
+import asyncio
 from datetime import datetime
 from pyrogram import Client, filters
 from pyrogram.errors.exceptions.flood_420 import FloodWait
+from pyrogram.errors.pyromod.listener_timeout import ListenerTimeout
 from src.database.products_db import menu_db
 from src.modules.panel import add_menu_data, add_stock_data
 from src.database.credits_db import credit_db
@@ -11,6 +13,37 @@ from src.database.sudo_db import sudo_user_db
 from src.database.stock_db import stocks_db
 from src.modules.keyboard import button_builder, build_keyboard
 
+
+@Client.on_callback_query(filters.regex(pattern=r"chatadmin"))
+async def chat_admin(b, cb):
+    action = cb.data.strip().split("|")[1]
+    await cb.answer("✉️ Ketik atau kirim sesuatu...")
+    if action == "show_admins":
+        list_button = []
+        list_admin = await sudo_user_db.get_all_sudo()
+        for admin_id in list_admin:
+            admin = await b.get_users(int(admin_id))
+            button = button_builder(admin.first_name, f"chatadmin|chat|{admin_id}")
+            list_button.append(button)
+        caption = cb.message.text.markdown
+        buttons = build_keyboard(list_button, row_width=1)
+        await cb.message.edit(caption, reply_markup=buttons)
+    elif action == "chat":
+        admin_id = int(cb.data.strip().split("|")[2])
+        chat = cb.message.chat
+        try:
+            response = await chat.ask("__✉️ Masukkan pesan:__", timeout=240)
+            button = button_builder(f"↪️ Balas {cb.from_user.first_name}", f"chatadmin|chat|{chat.id}")
+            buttons = build_keyboard([button], row_width=1)
+            await response.sent_message.delete()
+            await b.copy_message(int(admin_id), chat.id, response.id, reply_markup=buttons)
+            msg = await cb.message.reply("__✅ Pesan Terkirim.__")
+            await asyncio.sleep(5)
+            await msg.delete()
+        except ListenerTimeout:
+            await cb.message.reply(
+                "😢 Waktu habis, silahkan klik balas kembali."
+            )
 @Client.on_callback_query(filters.regex(pattern=r"addmenu"))
 async def cb_add_menu(b, cb):
     key_data = cb.data.strip().split("|")[1]
@@ -130,11 +163,15 @@ async def cb_order_menu(b, cb):
                 balance,
                 random_string
             )
+            chat_admin_btn = button_builder("✉️ Chat Admin", f"chatadmin|show_admins")
+            button = build_keyboard([chat_admin_btn], row_width=1)
             for i in range(int(total_item)):
                 item = stock.get("stock")[i]
                 await b.send_message(
                     user_id,
-                    f"**»»» DATA PESANAN {i+1} «««**\n\n{item}")
+                    f"**»»» DATA PESANAN {i+1} «««**\n\n{item}",
+                    reply_markup=button
+                )
                 await stocks_db.remove_item(key_item, item)
             list_admin = await sudo_user_db.get_all_sudo()
             await cb.message.edit(
