@@ -141,10 +141,15 @@ async def menu(client, message):
     list_menu = []
     bot_info = await client.get_me()
     username = bot_info.username
+    user_id = message.from_user.id
     try:
+        next_btn = button_builder("⬇️ Berikutnya", f"showmenu|next|5|{user_id}")
+        button = build_keyboard([next_btn], row_width=1)
         caption = "**»»» PERLA BOT STORE «««**\n\n"
         all_menu = await menu_db.get_all_menus()
+        i = 0
         for item in all_menu:
+            i = i + 1
             stock = await stocks_db.get_stock(item['key'])
             list_stock = stock.get("stock", [])
             url_product = f"http://t.me/{username}?start={item['key']}"
@@ -152,7 +157,10 @@ async def menu(client, message):
                 f"**🏷 {item['name']}**\n• **💵 Harga:** Rp{int(item['price']):,}\n• **📦 Stok Tersedia:** {len(list_stock)}\n"
                 f"• **🆔 Kode:** [{item['key']}]({url_product})\n• **📄 Desk:** __{item['desc']}__"
             )
-        await message.reply(caption + "\n\n".join(list_menu), disable_web_page_preview=True)
+            if i == 5:
+                print(i)
+                break
+        await message.reply(caption + "\n\n".join(list_menu), reply_markup=button, disable_web_page_preview=True)
     except MessageEmpty:
         await message.reply("Menu etalase kosong!")
 
