@@ -14,6 +14,23 @@ from pyrogram.errors.exceptions.bad_request_400 import MessageEmpty
 add_menu_data = {}
 add_stock_data = {}
 
+
+@Client.on_message(filters.command("saldo"))
+async def cek_saldo(client, message):
+    user = message.from_user
+    get_balance = await credit_db.get_balance(user.id)
+    remaining = get_balance.get("credits")
+    check_time = datetime.datetime.now()
+    remaining_balance = 0 if remaining is None else remaining
+    try:
+        caption = (
+            f"💰 **INFORMASI SALDO PerlaPAY** 💰\n\n• **ID:** {user.mention} (`{user.id}`)\n"
+            f"• **Saldo Terkini:** Rp{remaining_balance}\n• **Stampel Waktu:** `{check_time}`"
+        )
+        await message.reply(caption)
+    except Exception as e:
+        await message.reply(f"Error: {e}")
+
 @Client.on_message(filters.command("topup"))
 @admins_only
 async def add_saldo(client, message):
@@ -143,7 +160,7 @@ async def menu(client, message):
     username = bot_info.username
     user_id = message.from_user.id
     try:
-        next_btn = button_builder("⬇️ Berikutnya", f"showmenu|next|5|{user_id}")
+        next_btn = button_builder("Berikutnya ➡️", f"showmenu|next|5|{user_id}")
         button = build_keyboard([next_btn], row_width=1)
         caption = "**»»» PERLA BOT STORE «««**\n\n"
         all_menu = await menu_db.get_all_menus()

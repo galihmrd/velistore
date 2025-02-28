@@ -50,9 +50,9 @@ async def cb_show_menu(b, cb):
                 if current_position == i:
                     break
             back_position = int(position) - 4
-            next_btn = button_builder("⬇️ Berikutnya", f"showmenu|next|{current_position}|{task_id}")
-            back_btn = button_builder("⬆️ Kembali", f"showmenu|back|{back_position}|{task_id}")
-            button = build_keyboard([back_btn, next_btn], row_width=1)
+            next_btn = button_builder("Berikutnya ➡️", f"showmenu|next|{current_position}|{task_id}")
+            back_btn = button_builder("⬅️ Kembali", f"showmenu|back|{back_position}|{task_id}")
+            button = build_keyboard([back_btn, next_btn], row_width=2)
             await cb.message.edit(caption + "\n\n".join(list_menu), reply_markup=button, disable_web_page_preview=True)
         except Exception:
             if action == "next":
@@ -93,7 +93,7 @@ async def cb_order_menu(b, cb):
             current_item = int(cb.data.strip().split("|")[2]) + 1
         else:
             current_item = int(cb.data.strip().split("|")[2]) - 1
-            if current_item == 0:
+            if current_item < 1:
                 return await cb.answer("Checkout setidaknya 1 item.", show_alert=True)
         key_item = cb.data.strip().split("|")[3]
         menu = await menu_db.get_menu(key_item)
