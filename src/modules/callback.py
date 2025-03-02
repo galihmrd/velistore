@@ -206,11 +206,12 @@ async def cb_topup_menu(b, cb):
             return await cb.message.reply("⚠️ **Nominal topup harus terdiri dari angka, silahkan klik tombol konfirmasi kembali.")
         receipt = await chat.ask("🖼 Masukkan screenshot (gambar) bukti transfer QRIS:")
         confirm_btn = button_builder("✅ Konfirmasi", f"confirm_topup|input_db|{nominal.text}|{uid}")
-        button = build_keyboard([confirm_btn], row_width=1)
+        chat_btn = button_builder(f"Chat {cb.from_user.first_name}", f"chatadmin|chat|{uid}")
+        button = build_keyboard([confirm_btn, chat_btn], row_width=1)
         caption = (
             f"ℹ️ {cb.from_user.mention} Meminta anda untuk mengkonfirmasi "
             f"TOPUP saldo PerlaPAY\n • **Nominal TOPUP:** Rp{nominal.text}\n\n"
-            "⚠️ __Periksa bukti transfer sebelum konfirmasi.__"
+            "⚠️ __Periksa bukti transfer sebelum konfirmasi. Klik chat untuk menghubungi yang bersangkutan__"
         )
         for admin_id in list_admin:
             await b.send_photo(
