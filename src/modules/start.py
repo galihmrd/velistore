@@ -7,6 +7,13 @@ from src.modules.keyboard import button_builder, build_keyboard
 @Client.on_message(filters.command("start"))
 async def start(client, message):
     if len(message.command) == 2:
+        if message.command[1] == "confirm_payment":
+            confirm_btn = button_builder("⁉️ Konfirmasi", f"confirm_topup|input_data")
+            button = build_keyboard([confirm_btn], row_width=1)
+            return await message.reply(
+                "**Klik konfirmasi untuk melanjutkan.**",
+                reply_markup=button
+            )
         item = await menu_db.get_menu(message.command[1])
         stock = await stocks_db.get_stock(message.command[1])
         stock_avail = len(stock.get("stock", []))

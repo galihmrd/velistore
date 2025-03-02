@@ -2,6 +2,8 @@ import datetime
 import random
 import string
 from pyrogram import Client, filters
+from pyrogram.enums import ChatType
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from src.database.products_db import menu_db
 from src.database.credits_db import credit_db
 from src.database.sudo_db import sudo_user_db
@@ -32,32 +34,28 @@ async def cek_saldo(client, message):
         await message.reply(f"Error: {e}")
 
 @Client.on_message(filters.command("topup"))
-@admins_only
 async def add_saldo(client, message):
-    replied = message.reply_to_message
-    admin_id = message.from_user.id
-    if replied.photo:
-        file_id = replied.photo.file_id
-        user_id = replied.from_user.id
-        mention = replied.from_user.mention
-        if len(message.command) == 2:
-            nominal = int(message.command[1])
-            get_balance = await credit_db.get_balance(user_id)
-            remaining = get_balance.get("credits")
-            remaining_balance = 0 if remaining is None else remaining
-            yes_btn = button_builder("✅ Ya", f"topup|{admin_id}|{nominal}|{user_id}")
-            close_btn = button_builder("❎ Tidak", f"cls")
-            button = build_keyboard([yes_btn, close_btn], row_width=2)
-            try:
-                balance = nominal + remaining_balance
-                msg = (
-                    f"💰 **INFORMASI TOPUP** 💰\n\n• **ID Pengguna:** {mention} (`{user_id}`)\n"
-                    f"• **Saldo Terakhir:** Rp{remaining}\n• **Nominal Topup:** Rp{nominal}\n\n"
-                    "❓ **Apakah informasi tersebut benar?**"
-                )
-                await message.reply(msg, reply_markup=button)
-            except ValueError:
-                print("error")
+    file_id = "./qris.jpg"
+    if message.chat.type == ChatType.PRIVATE:
+        confirm_btn = button_builder("⁉️ Konfirmasi", f"confirm_topup|input_data")
+        button = build_keyboard([confirm_btn], row_width=1)
+    else:
+        bot = await client.get_me()
+        button = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("⁉️ Konfirmasi", url=f"https://t.me/{bot.username}?start=confirm_payment"),
+                ],
+            ],
+        )
+    await message.reply_photo(
+        file_id,
+        caption=(
+            "**Scan QRIS diatas, masukkan nominal TOPUP"
+            " lalu klik konfirmasi untuk melanjutkan.**"
+        ),
+        reply_markup=button
+    )
 
 @Client.on_message(filters.command("addstock"))
 @admins_only

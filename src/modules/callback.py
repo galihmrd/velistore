@@ -7,6 +7,7 @@ from pyrogram import Client, filters
 from pyrogram.errors.exceptions.flood_420 import FloodWait
 from pyrogram.errors.pyromod.listener_timeout import ListenerTimeout
 from src.database.products_db import menu_db
+from src.database.order_db import orders_db
 from src.modules.panel import add_menu_data, add_stock_data
 from src.database.credits_db import credit_db
 from src.database.sudo_db import sudo_user_db
@@ -44,6 +45,7 @@ async def chat_admin(b, cb):
             await cb.message.reply(
                 "😢 Waktu habis, silahkan klik balas kembali."
             )
+
 @Client.on_callback_query(filters.regex(pattern=r"addmenu"))
 async def cb_add_menu(b, cb):
     key_data = cb.data.strip().split("|")[1]
@@ -141,6 +143,7 @@ async def cb_order_menu(b, cb):
             reply_markup=button,
         )
     elif type == "checkout":
+        receipt_id = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(15))
         total_item = int(cb.data.strip().split("|")[2])
         key_item = cb.data.strip().split("|")[3]
         menu = await menu_db.get_menu(key_item)
@@ -173,21 +176,53 @@ async def cb_order_menu(b, cb):
                     reply_markup=button
                 )
                 await stocks_db.remove_item(key_item, item)
+            await orders_db.add_order(
+                receipt_id,
+                datetime.now(),
+                price,
+                stock.get("stock")
+            )
             list_admin = await sudo_user_db.get_all_sudo()
             await cb.message.edit(
                 f"**»»» DETAIL PESANAN «««**\n\n• **Layanan:** {menu['name']}\n"
                 f"• **ID Pembeli:** {user_id}\n• **Harga**: Rp{int(menu['price']):,}\n"
+                f"• **ID Transaksi:** `{receipt_id}`\n"
                 f"• **Jumlah Item:** {total_item}x\n• **Total Bayar:** Rp{price:,}\n"
                 f"• **Saldo Awal:** Rp{remaining_balance:,}\n• **Sisa Saldo:** Rp{balance:,}\n"
                 f"• **Desc:** {menu['desc']}\n• **Stampel Waktu:** {datetime.now()}"
             )
 
-@Client.on_callback_query(filters.regex(pattern=r"topup"))
+@Client.on_callback_query(filters.regex(pattern=r"confirm_topup"))
 async def cb_topup_menu(b, cb):
-    task_id = cb.data.strip().split("|")[1]
-    nominal = int(cb.data.strip().split("|")[2])
-    user_id = cb.data.strip().split("|")[3]
-    if int(task_id) == cb.from_user.id:
+    uid = cb.from_user.id
+    action = cb.data.strip().split("|")[1]
+    if action == "input_data":
+        chat = cb.message.chat
+        list_admin = await sudo_user_db.get_all_sudo()
+        try:
+            nominal = await chat.ask("💰 Masukkan nominal TOPUP:")
+            int(nominal.text) + 1
+        except:
+            return await cb.message.reply("⚠️ **Nominal topup harus terdiri dari angka, silahkan klik tombol konfirmasi kembali.")
+        receipt = await chat.ask("🖼 Masukkan screenshot (gambar) bukti transfer QRIS:")
+        confirm_btn = button_builder("✅ Konfirmasi", f"confirm_topup|input_db|{nominal.text}|{uid}")
+        button = build_keyboard([confirm_btn], row_width=1)
+        caption = (
+            f"ℹ️ {cb.from_user.mention} Meminta anda untuk mengkonfirmasi "
+            f"TOPUP saldo PerlaPAY\n • **Nominal TOPUP:** Rp{nominal.text}\n\n"
+            "⚠️ __Periksa bukti transfer sebelum konfirmasi.__"
+        )
+        for admin_id in list_admin:
+            await b.send_photo(
+                int(admin_id),
+                photo=receipt.photo.file_id,
+                caption=caption,
+                reply_markup=button
+            )
+        await cb.message.reply("✅ __Permintaan terkirim, silahkan tunggu.__")
+    else:
+        nominal = cb.data.strip().split("|")[2]
+        user_id = cb.data.strip().split("|")[3]
         random_string = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
         try:
             userdata = await b.get_users(int(user_id))
@@ -210,12 +245,10 @@ async def cb_topup_menu(b, cb):
             await b.send_message(
                 int(user_id),
                 f"✅ **Permintaan TOPUP Saldo PerlaPAY anda telah disetujui.**\n\n"
-                f"• **Nominal TOPUP:** Rp{nominal:,}\n• **Saldo Terkini:** Rp{balance:,}"
+                f"• **Nominal TOPUP:** Rp{nominal}\n• **Saldo Terkini:** Rp{balance}"
             )
         except Exception as e:
             await cb.answer(f"Error: {e}")
-    else:
-        await cb.answer("Hanya admin yang dapat melakukan tindakan ini.", show_alert=True)
 
 @Client.on_callback_query(filters.regex(pattern=r"cls"))
 async def close_btn(b, cb):
