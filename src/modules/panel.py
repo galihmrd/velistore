@@ -51,8 +51,8 @@ async def add_saldo(client, message):
     await message.reply_photo(
         file_id,
         caption=(
-            "**Scan QRIS diatas, masukkan nominal TOPUP"
-            " lalu klik konfirmasi untuk melanjutkan.**"
+            "**1. Scan QRIS diatas\n2. Masukkan nominal TOPUP\n"
+            "3. Screenshot bukti transfer\n4. Lalu klik konfirmasi untuk melanjutkan.**"
         ),
         reply_markup=button
     )
