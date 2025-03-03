@@ -177,6 +177,7 @@ async def cb_order_menu(b, cb):
             )
             chat_admin_btn = button_builder("✉️ Chat Admin", f"chatadmin|show_admins")
             button = build_keyboard([chat_admin_btn], row_width=1)
+            ordered_item = []
             for i in range(int(total_item)):
                 item = stock.get("stock")[i]
                 await b.send_message(
@@ -184,12 +185,13 @@ async def cb_order_menu(b, cb):
                     f"**»»» DATA PESANAN {i+1} «««**\n\n{item}",
                     reply_markup=button
                 )
+                ordered_item.append(item)
                 await stocks_db.remove_item(key_item, item)
             await orders_db.add_order(
                 receipt_id,
                 datetime.now(),
                 price,
-                stock.get("stock")
+                ordered_item
             )
             list_admin = await sudo_user_db.get_all_sudo()
             await cb.message.edit(
