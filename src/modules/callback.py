@@ -6,6 +6,7 @@ from datetime import datetime
 from pyrogram import Client, filters
 from pyrogram.errors.exceptions.flood_420 import FloodWait
 from pyrogram.errors.pyromod.listener_timeout import ListenerTimeout
+from pyrogram.errors.exceptions.bad_request_400 import MessageNotModified
 from src.database.products_db import menu_db
 from src.database.order_db import orders_db
 from src.modules.panel import add_menu_data, add_stock_data
@@ -89,6 +90,8 @@ async def cb_show_menu(b, cb):
             back_btn = button_builder("⬅️ Kembali", f"showmenu|back|{back_position}|{task_id}")
             button = build_keyboard([back_btn, next_btn], row_width=2)
             await cb.message.edit(caption + "\n\n".join(list_menu), reply_markup=button, disable_web_page_preview=True)
+        except MessageNotModified:
+            pass
         except Exception:
             if action == "next":
                 await cb.answer("Anda telah mencapai batas akhir menu etalase.", show_alert=True)
@@ -124,19 +127,25 @@ async def cb_order_menu(b, cb):
     type = cb.data.strip().split("|")[1]
     random_string = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
     if type in ["item_plus", "item_min"]:
+        key_item = cb.data.strip().split("|")[3]
+        stock = await stocks_db.get_stock(key_item)
+        remain_stock = len(stock.get("stock", []))
         if type == "item_plus":
             current_item = int(cb.data.strip().split("|")[2]) + 1
+            if current_item > remain_stock:
+                if remain_stock == 0:
+                    return await cb.answer(f"Stock item kosong.", show_alert=True)
+                return await cb.answer(f"Stock tidak mencukupi.", show_alert=True)
         else:
             current_item = int(cb.data.strip().split("|")[2]) - 1
             if current_item < 1:
                 return await cb.answer("Checkout setidaknya 1 item.", show_alert=True)
-        key_item = cb.data.strip().split("|")[3]
         menu = await menu_db.get_menu(key_item)
         price = int(menu["price"]) * current_item
         min_btn = button_builder("-1 ««", f"order|item_min|{current_item}|{key_item}")
         total_item = button_builder(f"{current_item}x", f"p")
         plus_btn = button_builder("»» +1", f"order|item_plus|{current_item}|{key_item}")
-        checkout_btn = button_builder(f"Checkout Rp{price:,}", f"order|checkout|{current_item}|{key_item}")
+        checkout_btn = button_builder(f"💵 Checkout Rp{price:,}", f"order|checkout|{current_item}|{key_item}")
         button = build_keyboard([min_btn, total_item, plus_btn, checkout_btn], row_width=3)
         await cb.message.edit(
             cb.message.text.markdown,
