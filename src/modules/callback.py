@@ -92,13 +92,13 @@ async def cb_show_menu(b, cb):
             await cb.message.edit(caption + "\n\n".join(list_menu), reply_markup=button, disable_web_page_preview=True)
         except MessageNotModified:
             pass
+        except FloodWait as e:
+            await cb.answer(f"Terlalu cepat! Tunggu {e.value} detik.")
         except Exception:
             if action == "next":
                 await cb.answer("Anda telah mencapai batas akhir menu etalase.", show_alert=True)
             elif action == "back":
                 await cb.answer("Anda telah mencapai batas awal menu etalase.", show_alert=True)
-        except FloodWait as e:
-            await cb.answer(f"Terlalu cepat! Tunggu {e.value} detik.")
     else:
         await cb.answer("Ketik /menu untuk melihat menu anda sendiri.", show_alert=True)
 
@@ -211,15 +211,16 @@ async def cb_topup_menu(b, cb):
         chat = cb.message.chat
         list_admin = await sudo_user_db.get_all_sudo()
         try:
-            nominal = await chat.ask("💰 Masukkan nominal TOPUP:")
+            nominal = await chat.ask("💰 Masukkan nominal TOPUP:", timeout=60)
             int(nominal.text) + 1
-        except:
-            return await cb.message.reply("⚠️ **Nominal topup harus terdiri dari angka, silahkan klik tombol konfirmasi kembali.")
-        try:
-            receipt = await chat.ask("🖼 Masukkan screenshot (gambar) bukti transfer QRIS:")
+            receipt = await chat.ask("🖼 Masukkan screenshot (gambar) bukti transfer QRIS:", timeout=120)
             receipt_file_id = receipt.photo.file_id
         except AttributeError:
-            return await cb.message.reply("⚠️ **Bukti transfer harus berupa gambar, silahkan klik tombol konfirmasi kembali.")
+            return await cb.message.reply("⚠️ **Bukti transfer harus berupa gambar**, silahkan klik tombol konfirmasi kembali.")
+        except ListenerTimeout:
+            return await cb.message.reply("😥 **Waktu mengisi habis**, silahkan klik tombol konfirmasi kembali.")
+        except Exception:
+            return await cb.message.reply("⚠️ **Nominal topup harus terdiri dari angka**, silahkan klik tombol konfirmasi kembali.")
         confirm_btn = button_builder("✅ Konfirmasi", f"confirm_topup|input_db|{nominal.text}|{uid}")
         chat_btn = button_builder(f"Chat {cb.from_user.first_name}", f"chatadmin|chat|{uid}")
         button = build_keyboard([confirm_btn, chat_btn], row_width=1)
