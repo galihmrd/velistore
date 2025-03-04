@@ -215,7 +215,11 @@ async def cb_topup_menu(b, cb):
             int(nominal.text) + 1
         except:
             return await cb.message.reply("⚠️ **Nominal topup harus terdiri dari angka, silahkan klik tombol konfirmasi kembali.")
-        receipt = await chat.ask("🖼 Masukkan screenshot (gambar) bukti transfer QRIS:")
+        try:
+            receipt = await chat.ask("🖼 Masukkan screenshot (gambar) bukti transfer QRIS:")
+            receipt_file_id = receipt.photo.file_id
+        except AttributeError:
+            return await cb.message.reply("⚠️ **Bukti transfer harus berupa gambar, silahkan klik tombol konfirmasi kembali.")
         confirm_btn = button_builder("✅ Konfirmasi", f"confirm_topup|input_db|{nominal.text}|{uid}")
         chat_btn = button_builder(f"Chat {cb.from_user.first_name}", f"chatadmin|chat|{uid}")
         button = build_keyboard([confirm_btn, chat_btn], row_width=1)
@@ -227,7 +231,7 @@ async def cb_topup_menu(b, cb):
         for admin_id in list_admin:
             await b.send_photo(
                 int(admin_id),
-                photo=receipt.photo.file_id,
+                photo=receipt_file_id,
                 caption=caption,
                 reply_markup=button
             )
